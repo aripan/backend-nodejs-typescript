@@ -8,9 +8,13 @@ interface IUser {
   fullName: string;
   avatar: string;
   coverImage: string;
-  watchHistory: { type: Schema.Types.ObjectId; ref: string }[];
+  // watchHistory: { type: Schema.Types.ObjectId; ref: string }[];
+  watchHistory: Array<Schema.Types.ObjectId>;
   password: string;
   refreshToken: string;
+  isPasswordCorrect(password: string): Promise<boolean>;
+  generateAccessToken(): string;
+  generateRefreshToken(): string;
 }
 
 const userSchema = new Schema<IUser>(
@@ -73,7 +77,7 @@ userSchema.methods.isPasswordCorrect = async function (password: string): Promis
   return await bcrypt.compare(password, this.password);
 };
 
-userSchema.methods.generateAccessToken = function () {
+userSchema.methods.generateAccessToken = function (): string {
   const payLoad = {
     _id: this._id,
     email: this.email,
@@ -86,7 +90,7 @@ userSchema.methods.generateAccessToken = function () {
   });
 };
 
-userSchema.methods.generateRefreshToken = function () {
+userSchema.methods.generateRefreshToken = function (): string {
   const payLoad = {
     _id: this._id,
   };
