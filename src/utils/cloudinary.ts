@@ -24,7 +24,7 @@ if (!cloudinaryConfig.cloud_name || !cloudinaryConfig.api_key || !cloudinaryConf
 cloudinary.config(cloudinaryConfig);
 
 // Adjusting return type to Promise<UploadApiResponse | null>
-const uploadOnCloudinary = async (localFilePath: string): Promise<UploadApiResponse | null> => {
+export const uploadOnCloudinary = async (localFilePath: string): Promise<UploadApiResponse | null> => {
   try {
     if (!localFilePath) return null;
 
@@ -34,20 +34,24 @@ const uploadOnCloudinary = async (localFilePath: string): Promise<UploadApiRespo
     });
 
     // File has been successfully uploaded
-    console.log("File is successfully uploaded on Cloudinary:", response.url);
+    // console.log("File is successfully uploaded on Cloudinary:", response.url);
+
+    //! Remove the locally saved temporary file as the upload operation failed
+    removeFileFromLocalPath(localFilePath);
 
     return response;
   } catch (error) {
     console.error("Error occurred while uploading:", error);
 
     //! Remove the locally saved temporary file as the upload operation failed
-    if (fs.existsSync(localFilePath)) {
-      fs.unlinkSync(localFilePath);
-      console.log("Local temporary file removed:", localFilePath);
-    }
+    removeFileFromLocalPath(localFilePath);
 
     return null;
   }
 };
 
-export { uploadOnCloudinary };
+export const removeFileFromLocalPath = (localFilePath: string) => {
+  if (fs.existsSync(localFilePath)) {
+    fs.unlinkSync(localFilePath);
+  }
+};

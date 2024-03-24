@@ -49,8 +49,8 @@ const registerUser = asyncHandler(
 
     //@ check for images, check for avatar
     // though we injected multer middleware in the router => multer added few more thing to the request such as req.files and we can access these files
-    const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
+    const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
     if (!avatarLocalPath) {
       throw new ApiError(400, "Avatar file is required");
@@ -58,7 +58,7 @@ const registerUser = asyncHandler(
 
     //@ upload them to cloudinary: avatar
     const avatar = await uploadOnCloudinary(avatarLocalPath);
-    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+    const coverImage = coverImageLocalPath ? await uploadOnCloudinary(coverImageLocalPath) : undefined;
 
     if (!avatar) {
       throw new ApiError(400, "Avatar file is required");

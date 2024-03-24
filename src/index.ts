@@ -14,7 +14,7 @@ connectDB()
     });
 
     app.listen(PORT, () => {
-      console.info(`App is listening on ${PORT}`);
+      console.info(`\n 🚀 Server is running on ${PORT}`);
     });
   })
   .catch((err) => {
