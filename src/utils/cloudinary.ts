@@ -49,3 +49,5 @@ const uploadOnCloudinary = async (localFilePath: string): Promise<UploadApiRespo
     return null;
   }
 };
+
+export { uploadOnCloudinary };
