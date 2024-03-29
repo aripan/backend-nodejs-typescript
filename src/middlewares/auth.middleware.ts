@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { IUser, User } from "../models/user.models";
+import { IUser, User } from "../models/user.model";
 
 // Define a custom interface that extends Request
 interface CustomRequest extends Request {
