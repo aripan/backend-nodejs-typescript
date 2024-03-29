@@ -2,7 +2,7 @@ import { Schema, model } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
-interface IUser {
+export interface IUser {
   username: string;
   email: string;
   fullName: string;
