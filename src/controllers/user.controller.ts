@@ -5,6 +5,8 @@ import { User } from "../models/user.models";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 import { ApiResponse } from "../utils/ApiResponse";
 import { Types } from "mongoose";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import { cookieOptions } from "../constants";
 
 interface RequestBody {
   fullName: string;
@@ -158,19 +160,11 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
   const loggedInUser = await User.findOne(user._id).select("-password -refreshToken");
 
-  /*
-  ! IMPORTANT: providing the httpOnly and secure flags => does not allow to modify the cookies in client side anymore.
-  */
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
   //@ return response
   res
     .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
+    .cookie("accessToken", accessToken, cookieOptions)
+    .cookie("refreshToken", refreshToken, cookieOptions)
     .json(
       new ApiResponse(
         200,
@@ -199,16 +193,60 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
   );
 
   // clear cookies
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
   res
     .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
+    .clearCookie("accessToken", cookieOptions)
+    .clearCookie("refreshToken", cookieOptions)
     .json(new ApiResponse(200, null, "User logged out successfully"));
 });
 
-export { registerUser, loginUser, logoutUser };
+const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
+  //@ access the refresh token from cookies
+  const incomingRefreshToken = req.cookies.refreshToken;
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "Unauthorized request");
+  }
+
+  try {
+    //@ verify the refresh token
+    const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET!) as JwtPayload;
+
+    //@ fetch user information
+    const user = await User.findById(decodedToken?._id);
+
+    if (!user) {
+      throw new ApiError(401, "Invalid refresh token");
+    }
+
+    //@ compare the incoming refresh token with the stored refresh token
+    if (incomingRefreshToken !== user?.refreshToken) {
+      throw new ApiError(401, "Refresh token is not valid");
+    }
+
+    //@ generate new access and refresh tokens
+    const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshToken(user._id);
+
+    //@ send cookies in response and return response
+    res
+      .status(200)
+      .cookie("accessToken", accessToken, cookieOptions)
+      .cookie("refreshToken", newRefreshToken, cookieOptions)
+      .json(
+        new ApiResponse(
+          200,
+          {
+            accessToken,
+            refreshToken: newRefreshToken,
+          },
+          "Access token refreshed successfully"
+        )
+      );
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new ApiError(401, error.message);
+    }
+    throw new ApiError(401, "Refresh token is not usable");
+  }
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken };
