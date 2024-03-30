@@ -4,7 +4,7 @@ import { ApiError } from "../utils/ApiError";
 import { User } from "../models/user.model";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 import { ApiResponse } from "../utils/ApiResponse";
-import { Types } from "mongoose";
+import mongoose, { Schema, Types } from "mongoose";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { cookieOptions } from "../constants";
 
@@ -414,6 +414,62 @@ const getUserChannelProfile = asyncHandler(async (req: Request, res: Response) =
   return res.status(200).json(new ApiResponse(200, channel[0], "User channel fetched successfully"));
 });
 
+const getWatchHistory = asyncHandler(async (req: Request, res: Response) => {
+  /*
+  !IMPORTANT: we use req.user._id and here we normally get string value but not mongodb id. But when when use in mongoose methods such as User.findById() or so, then mongoose convert the string to mongodb id.
+
+  # Now if we do aggregation, then mongoose does not convert it and use the raw string value. so here we need to convert it manually.
+  */
+
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId((req as any).user._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    fullName: 1,
+                    username: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $addFields: {
+              owner: {
+                $first: "$owner",
+              },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  if (!user.length) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res.status(200).json(new ApiResponse(200, user[0].watchHistory, "User history fetched successfully"));
+});
+
 export {
   registerUser,
   loginUser,
@@ -425,4 +481,5 @@ export {
   updateUserAvatar,
   updateUserCoverImage,
   getUserChannelProfile,
+  getWatchHistory,
 };
