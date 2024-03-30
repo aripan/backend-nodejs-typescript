@@ -1,10 +1,20 @@
 import { Router } from "express";
-import { loginUser, logoutUser, refreshAccessToken, registerUser } from "../controllers/user.controller";
+import {
+  changeCurrentPassword,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  registerUser,
+  updateAccountDetails,
+  updateUserAvatar,
+  updateUserCoverImage,
+} from "../controllers/user.controller";
 import { upload } from "../middlewares/multer.middleware";
 import { verifyJWT } from "../middlewares/auth.middleware";
 
 const userRouter = Router();
 
+//@ PUBLIC ROUTES
 userRouter.route("/register").post(
   upload.fields([
     {
@@ -20,8 +30,12 @@ userRouter.route("/register").post(
 );
 userRouter.route("/login").post(loginUser);
 
-// SECURED ROUTES
+//@ PRIVATE ROUTES
 userRouter.route("/logout").post(verifyJWT, logoutUser);
 userRouter.route("/refreshToken").post(refreshAccessToken);
+userRouter.route("/updateAccountDetails").patch(verifyJWT, updateAccountDetails);
+userRouter.route("/updatePassword").patch(verifyJWT, changeCurrentPassword);
+userRouter.route("/updateAvatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar);
+userRouter.route("/updateCoverImage").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage);
 
 export default userRouter;
